@@ -1,13 +1,12 @@
 <?php
 	
-	class SteamAPI{
+	class SteamAPI {
 
 
-		const version = '0.1';
+		const version = '0.2.1';
 		private $ids = '';
 		private $token;
 		private $pre_url = 'https://api.steampowered.com/';
-
 
 
 		public function __construct($steamids, $token){
@@ -29,6 +28,10 @@
 
 		}
 
+
+		public function set_token($token){
+			$this->token = $token;
+		}
 
 
 		private function get_content($uri){
@@ -149,8 +152,8 @@
 							$game['has_community_visible_stats'] = $g['has_community_visible_stats'];
 							$game['community_stats_url'] = 'http://steamcommunity.com/profiles/' . $id . '/stats/' . $g['appid'];
 						}
-						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
-						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
+						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
+						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
  						array_push($player['games'], $game);
 					}
 				}
@@ -188,8 +191,8 @@
 							$game['has_community_visible_stats'] = $g['has_community_visible_stats'];
 							$game['community_stats_url'] = 'http://steamcommunity.com/profiles/' . $id . '/stats/' . $g['appid'];
 						}
-						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
-						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
+						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
+						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
  						array_push($player['games'], $game);
 					}
 				}
@@ -231,22 +234,67 @@
 		}
 
 
-		public function GetGamePrice($appid, $currency){
-			$url = 'http://store.steampowered.com/api/appdetails?appids=' . $appid . '&filters=price_overview&cc=' . $currency;
-			$handler = $this->get_content($url);
+		public function GetGamePrice($appid, $currency=[]){
+			$country_codes = array(
+				'ae', 'au', 'br', 'cn', 'dk', 'es', 'gb', 'hr', 'ie', 'ir', 'jp', 'lt', 'ly', 'mx', 'no', 'ph', 'pt', 'rs', 'se', 'sk', 'tw', 'ar',
+				'be', 'ca', 'cz', 'dz', 'fi', 'gr', 'hu', 'il', 'is', 'kr', 'lu', 'mk', 'my', 'nz', 'pk', 're', 'ru', 'sg', 'th', 'ua', 'za', 'at',
+				'bg', 'cl', 'de', 'ee', 'fr', 'hk', 'id', 'in', 'it', 'kz', 'lv', 'mo', 'nl', 'pe', 'pl', 'ro', 'sa', 'si', 'tr', 'us', 'by'
+			);
+
+			$array_countries = [];
+
+
+			if(!empty($currency) && is_array($currency)){
+				$array_countries = $currency;
+			} else {
+				$array_countries = $country_codes;
+			}
 
 			$prices = [];
-
-			foreach ($handler[$appid]['data'] as $h) {
-				$price = [];
-				$price['currency'] = $h['currency'];
-				$price['initial'] = $h['initial'];
-				$price['final'] = $h['final'];
-				$price['discount_percent'] = $h['discount_percent'];
-				array_push($prices, $price);
+			foreach ($array_countries as $code) {
+				$url = 'http://store.steampowered.com/api/appdetails?appids=' . $appid . '&filters=price_overview&cc=' . $code;
+				$handler = $this->get_content($url);
+				
+				if($handler[$appid]['success']){
+					foreach ($handler[$appid]['data'] as $h) {
+						$price = [];
+						$price['currency'] = $h['currency'];
+						$price['initial'] = $h['initial'];
+						$price['final'] = $h['final'];
+						$price['discount_percent'] = $h['discount_percent'];
+						array_push($prices, $price);
+					}
+				}
 			}
 
 			return $prices;
+		}
+
+
+		public function GetPlayerBans(){
+			$url = $this->pre_url . 'ISteamUser/GetPlayerBans/v1?key=' . $this->token . '&steamids=' . $this->ids;
+			$bans = $this->get_content($url);
+			return $bans;
+		}
+
+
+		public function GetGameNumberOfPlayers($appid){
+			$url = $this->pre_url . 'ISteamUserStats/GetNumberOfCurrentPlayers/v1?appid=' . $appid;
+			$count = $this->get_content($url);
+
+			if($count) {
+				return $count['response']['result']? $count['response']['player_count']: false;
+			}
+			return false;
+		}
+
+
+		public function GetPlayerBadges(){
+			$steamids = $this->array_steamids($this->ids);
+
+			foreach ($steamids as $id) {
+				$url = $this->pre_url . 'IPlayerService/GetBadges/v1?key=' . $this->token . '&steamid=' . $id;
+			}
 		}
 
 	}
