@@ -149,8 +149,8 @@
 							$game['has_community_visible_stats'] = $g['has_community_visible_stats'];
 							$game['community_stats_url'] = 'http://steamcommunity.com/profiles/' . $id . '/stats/' . $g['appid'];
 						}
-						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
-						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
+						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
+						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
  						array_push($player['games'], $game);
 					}
 				}
@@ -188,8 +188,8 @@
 							$game['has_community_visible_stats'] = $g['has_community_visible_stats'];
 							$game['community_stats_url'] = 'http://steamcommunity.com/profiles/' . $id . '/stats/' . $g['appid'];
 						}
-						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
-						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'http://media.steampowered.com/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
+						if(!empty($g['img_icon_url'])) $game['app_icon_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_icon_url'] . '.jpg';
+						if(!empty($g['img_logo_url'])) $game['app_logo_url'] = 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/' . $g['appid'] . '/' . $g['img_logo_url'] . '.jpg';
  						array_push($player['games'], $game);
 					}
 				}
