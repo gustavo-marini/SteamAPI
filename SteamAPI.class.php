@@ -2,14 +2,13 @@
 	
 	class SteamAPI {
 
-
-		const version = '0.2.1';
+		const version = '0.2.2';
 		private $ids = '';
-		private $token;
+		private $api_key;
 		private $pre_url = 'https://api.steampowered.com/';
 
 
-		public function __construct($steamids, $token){
+		public function __construct($steamids, $api_key){
 			if(is_array($steamids)){
 				foreach ($steamids as $i => $id) {
 					$this->ids .= ($i==0? $id: ','.$id);
@@ -18,8 +17,8 @@
 				$this->ids = $steamids;
 			}
 
-			if(!empty($token)){
-				$this->token = $token;
+			if(!empty($api_key)){
+				$this->api_key = $api_key;
 			}
 
 			echo "<script>
@@ -28,9 +27,20 @@
 
 		}
 
+ 		###################
+		# GENERAL METHODS #
+		###################
 
-		public function set_token($token){
-			$this->token = $token;
+		public function add_steam_id($steamid){
+			if(count($this->ids) == 0){
+				$this->ids .= $steamid;
+			} else {
+				$this->ids .= ',' . $steamid;
+			}
+		}
+
+		public function set_api_key($api_key){
+			$this->api_key = $api_key;
 		}
 
 
@@ -52,8 +62,12 @@
 		}
 
 
+		###############
+		# API METHODS #
+		###############
+
 		public function GetPlayerInfo(){
-			$url = $this->pre_url . 'ISteamUser/GetPlayerSummaries/v0002/?key=' . $this->token . '&steamids=' . $this->ids;
+			$url = $this->pre_url . 'ISteamUser/GetPlayerSummaries/v0002/?key=' . $this->api_key . '&steamids=' . $this->ids;
 			$contents = $this->get_content($url);
 			$contents = $contents['response']['players'];
 
@@ -110,11 +124,11 @@
 		public function GetPlayerLevel(){
 			$steamids = $this->array_steamids($this->ids);
 
-			$players = array();
+			$players = [];
 
 			foreach ($steamids as $it => $id) {
 				$player = [];
-				$url = $this->pre_url . 'IPlayerService/GetSteamLevel/v1/?key=' . $this->token . '&steamid=' . $id;
+				$url = $this->pre_url . 'IPlayerService/GetSteamLevel/v1/?key=' . $this->api_key . '&steamid=' . $id;
 				$handler = $this->get_content($url);
 
 				$player['steamid'] = $id;
@@ -133,7 +147,7 @@
 
 			foreach ($steamids as $id) {
 				$player = [];
-				$url = $this->pre_url . 'IPlayerService/GetOwnedGames/v0001/?key=' . $this->token . '&steamid=' . $id . '&format=json&include_appinfo=1';
+				$url = $this->pre_url . 'IPlayerService/GetOwnedGames/v0001/?key=' . $this->api_key . '&steamid=' . $id . '&format=json&include_appinfo=1';
 				$handler = $this->get_content($url);
 
 				foreach ($handler as $h) {
@@ -172,7 +186,7 @@
 
 			foreach ($steamids as $id) {
 				$player = [];
-				$url = $this->pre_url . 'IPlayerService/GetRecentlyPlayedGames/v0001/?key=' . $this->token . '&steamid=' . $id . '&format=json&count=' . $limit;
+				$url = $this->pre_url . 'IPlayerService/GetRecentlyPlayedGames/v0001/?key=' . $this->api_key . '&steamid=' . $id . '&format=json&count=' . $limit;
 				$handler = $this->get_content($url);
 
 				foreach ($handler as $h) {
@@ -211,7 +225,7 @@
 
 			foreach ($steamids as $id) {
 				$player = [];
-				$url = $this->pre_url . 'ISteamUser/GetFriendList/v0001/?key=' . $this->token . '&steamid=' . $id . '&format=json&relationship=friend';
+				$url = $this->pre_url . 'ISteamUser/GetFriendList/v0001/?key=' . $this->api_key . '&steamid=' . $id . '&format=json&relationship=friend';
 				$handler = $this->get_content($url);
 
 				foreach ($handler as $h) {
@@ -272,7 +286,7 @@
 
 
 		public function GetPlayerBans(){
-			$url = $this->pre_url . 'ISteamUser/GetPlayerBans/v1?key=' . $this->token . '&steamids=' . $this->ids;
+			$url = $this->pre_url . 'ISteamUser/GetPlayerBans/v1?key=' . $this->api_key . '&steamids=' . $this->ids;
 			$bans = $this->get_content($url);
 			return $bans;
 		}
@@ -292,9 +306,39 @@
 		public function GetPlayerBadges(){
 			$steamids = $this->array_steamids($this->ids);
 
+			$players = [];
+
 			foreach ($steamids as $id) {
-				$url = $this->pre_url . 'IPlayerService/GetBadges/v1?key=' . $this->token . '&steamid=' . $id;
+				$url = $this->pre_url . 'IPlayerService/GetBadges/v1?key=' . $this->api_key . '&steamid=' . $id;
+				$handler = $this->get_content($url);
+
+				$player = [];
+
+				foreach ($handler as $h) {
+					$player['steamid'] = $id;
+					$player['player_xp'] = $h['player_xp'];
+					$player['player_level'] = $h['player_level'];
+					$player['player_xp_needed_to_level_up'] = $h['player_xp_needed_to_level_up'];
+					$player['player_xp_needed_current_level'] = $h['player_xp_needed_current_level'];
+					$player['badges'] = [];
+
+					foreach ($h['badges'] as $key => $badge) {
+						foreach ($badge as $k => $b) {
+							if($k && $b){
+								if($k == 'completion_time'){
+									$player['badges'][$key][$k] = gmdate("m-d-Y H:i:s", $b);
+								} else {
+									$player['badges'][$key][$k] = $b;
+								}
+							}
+						}
+					}
+
+					array_push($players, $player);
+				}
 			}
+
+			return $players;
 		}
 
 	}
