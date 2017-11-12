@@ -2,7 +2,7 @@
 	
 	class SteamAPI {
 
-		const version = '0.2.2';
+		const version = '0.3.2';
 		private $ids = '';
 		private $api_key;
 		private $pre_url = 'https://api.steampowered.com/';
@@ -43,7 +43,6 @@
 			$this->api_key = $api_key;
 		}
 
-
 		private function get_content($uri){
 			try{
 				$content = file_get_contents($uri);
@@ -54,7 +53,6 @@
 			}
 			
 		}
-
 
 		private function array_steamids($steamids){
 			$steamids = explode(',', $steamids);
@@ -89,12 +87,14 @@
 				"6" => "LookingToPlay"
 			);
 
+			$countries = $this->get_content('steam_countries.json');
+
 			$players = array();
 
 			foreach ($contents as $it => $p) {
 				$player = [];
 				$player['steamid'] = $p['steamid'];
-				$player['personaname'] = $p['personaname'];
+				$player['personaname'] = utf8_decode($p['personaname']);
 				$player['profileurl'] = $p['profileurl'];
 				$player['avatar'] = $p['avatar'];
 				$player['avatarmedium'] = $p['avatarmedium'];
@@ -112,8 +112,8 @@
 				if(!empty($p['gameextrainfo'])) $player['gameextrainfo'] = $p['gameextrainfo'];
 				if(!empty($p['cityid'])) $player['cityid'] = $p['cityid'];
 				if(!empty($p['loccountrycode'])) $player['loccountrycode'] = $p['loccountrycode'];
-				if(!empty($p['locstatecode'])) $player['locstatecode'] = $p['locstatecode'];
-				if(!empty($p['loccityid'])) $player['loccityid'] = $p['loccityid'];
+				if(!empty($p['locstatecode'])) $player['locstatecode'] = $countries[$p['loccountrycode']]['states'][$p['locstatecode']]['name'];
+				if(!empty($p['loccityid'])) $player['loccityid'] = $countries[$p['loccountrycode']]['states'][$p['locstatecode']]['cities'][$p['loccityid']]['name'];
 				array_push($players, $player);		
 			}
 
