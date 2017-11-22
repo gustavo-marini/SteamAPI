@@ -2,36 +2,27 @@
 	
 	class SteamAPI {
 
-		const version = '0.3.2';
+		const version = '0.4.0';
 		private $ids = '';
 		private $api_key;
 		private $pre_url = 'https://api.steampowered.com/';
 
 
-		public function __construct($steamids, $api_key){
-			if(is_array($steamids)){
-				foreach ($steamids as $i => $id) {
-					$this->ids .= ($i==0? $id: ','.$id);
-				}
-			} else {
-				$this->ids = $steamids;
-			}
-
+		public function __construct($api_key){
 			if(!empty($api_key)){
 				$this->api_key = $api_key;
 			}
 
 			echo "<script>
-				console.log('SteamAPI v." . self::version . " successfully loaded!');
+				console.info('SteamAPI v." . self::version . " successfully loaded!');
 			</script>";
-
 		}
 
  		###################
 		# GENERAL METHODS #
 		###################
 
-		public function add_steam_id($steamid){
+		private function add_steam_id($steamid){
 			if(count($this->ids) == 0){
 				$this->ids .= $steamid;
 			} else {
@@ -55,8 +46,7 @@
 		}
 
 		private function array_steamids($steamids){
-			$steamids = explode(',', $steamids);
-			return $steamids;
+			return explode(',', $steamids);
 		}
 
 
@@ -64,8 +54,8 @@
 		# API METHODS #
 		###############
 
-		public function GetPlayerInfo(){
-			$url = $this->pre_url . 'ISteamUser/GetPlayerSummaries/v0002/?key=' . $this->api_key . '&steamids=' . $this->ids;
+		public function GetPlayerInfo($steamids){
+			$url = $this->pre_url . 'ISteamUser/GetPlayerSummaries/v0002/?key=' . $this->api_key . '&steamids=' . $steamids;
 			$contents = $this->get_content($url);
 			$contents = $contents['response']['players'];
 
@@ -103,7 +93,7 @@
 				$player['communityvisibilitystate'] = $visibility[$p['communityvisibilitystate']];
 				$player['profilestate'] = $p['profilestate'];
 				$player['lastlogoff'] = gmdate("m-d-Y H:i:s", $p['lastlogoff']);
-				if(!empty($p['realname'])) $player['realname'] = $p['realname'];
+				if(!empty($p['realname'])) $player['realname'] = utf8_decode($p['realname']);
 				if(!empty($p['commentpermission'])) $player['commentpermission'] = $p['commentpermission'];
 				if(!empty($p['primaryclanid'])) $player['primaryclanid'] = $p['primaryclanid'];
 				if(!empty($p['timecreated'])) $player['timecreated'] = gmdate("m-d-Y H:i:s", $p['timecreated']);
@@ -121,8 +111,8 @@
 		}
 
 
-		public function GetPlayerLevel(){
-			$steamids = $this->array_steamids($this->ids);
+		public function GetPlayerLevel($steamids){
+			$steamids = $this->array_steamids($steamids);
 
 			$players = [];
 
@@ -140,8 +130,8 @@
 		}
 
 
-		public function GetPlayerGames(){
-			$steamids = $this->array_steamids($this->ids);
+		public function GetPlayerGames($steamids){
+			$steamids = $this->array_steamids($steamids);
 
 			$return = [];
 
@@ -179,8 +169,8 @@
 		}
 
 
-		public function GetRecentPlayedGames($limit=3){
-			$steamids = $this->array_steamids($this->ids);
+		public function GetRecentPlayedGames($steamids, $limit=3){
+			$steamids = $this->array_steamids($steamids);
 
 			$return = [];
 
@@ -218,8 +208,8 @@
 		}
 
 
-		public function GetFriendsList(){
-			$steamids = $this->array_steamids($this->ids);
+		public function GetFriendsList($steamids){
+			$steamids = $this->array_steamids($steamids);
 
 			$return = [];
 
@@ -236,7 +226,7 @@
 						$friend = [];
 						$friend['steamid'] = $f['steamid'];
 						$friend['relationship'] = $f['relationship'];
-						$friend['friend_since'] = gmdate("m-d-Y H:i:s", $f['friend_since']);
+						$friend['friend_since'] = gmdate("Y-m-d H:i:s", $f['friend_since']);
 						array_push($player['friends'], $friend);
 					}
 				}
@@ -285,9 +275,16 @@
 		}
 
 
-		public function GetPlayerBans(){
-			$url = $this->pre_url . 'ISteamUser/GetPlayerBans/v1?key=' . $this->api_key . '&steamids=' . $this->ids;
-			$bans = $this->get_content($url);
+		public function GetPlayerBans($steamids){
+			$steamids = $this->array_steamids($steamids);
+
+			$bans = [];
+
+			foreach ($steamids as $id) {
+				$url = $this->pre_url . 'ISteamUser/GetPlayerBans/v1?key=' . $this->api_key . '&steamids=' . $id;
+				$bans[] = $this->get_content($url)['players'][0];
+			}
+			
 			return $bans;
 		}
 
@@ -303,8 +300,8 @@
 		}
 
 
-		public function GetPlayerBadges(){
-			$steamids = $this->array_steamids($this->ids);
+		public function GetPlayerBadges($steamids){
+			$steamids = $this->array_steamids($steamids);
 
 			$players = [];
 
@@ -339,6 +336,41 @@
 			}
 
 			return $players;
+		}
+
+
+		public function GetPlayersFriendship($id1, $id2){
+			$friendsPlayer1 = $this->GetFriendsList($id1);
+			$players = $this->GetPlayerInfo($id1.','.$id2);
+			$flag = false;
+			
+			foreach ($friendsPlayer1[0]['friends'] as $k => $v) {
+				if($v['steamid'] == $id2){
+					$flag = true;
+					$friend_since = $v['friend_since'];
+				}
+			}
+
+			$return = new stdClass();
+
+			if($flag){
+				$return->msg = 'success';
+				$return->player_1 = $players[0]['personaname'];
+				$return->player_2 = $players[1]['personaname'];
+				$return->friends_since = $friend_since;
+
+				date_default_timezone_set('America/Los_Angeles');
+				$_since = new DateTime($friend_since);
+				$_now = new DateTime('now');
+				$diff = $_since->diff($_now);
+				
+				$return->friendship_time = $diff->format('%Y years, %m months and %d days');
+				$return->friendship_days = $diff->days;
+			} else {
+				$return->msg = 'error';
+			}
+
+			return $return;
 		}
 
 	}
