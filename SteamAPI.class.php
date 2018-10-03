@@ -2,7 +2,7 @@
 	
 	class SteamAPI {
 
-		const version = '0.4.0';
+		const version = '1.0';
 		private $ids = '';
 		private $api_key;
 		private $pre_url = 'https://api.steampowered.com/';
@@ -371,6 +371,35 @@
 			}
 
 			return $return;
+		}
+
+
+		public function news($app_id, $count = 3, $max_length = 1000) {
+			$url = $this->pre_url . "ISteamNews/GetNewsForApp/v0002/?appid={$app_id}&count={$count}&maxlength={$max_length}&format=json";
+
+			$handler = $this->get_content($url);
+
+			return $handler;
+		}
+
+
+		public function playesStatsForGame($steamid, $appid) {
+
+			$url = $this->pre_url . "ISteamUserStats/GetUserStatsForGame/v0002/?appid={$appid}&key={$this->api_key}&steamid={$steamid}";
+
+			$handler = $this->get_content($url);
+
+			return $handler;
+		}
+
+
+		public function getSchemaForGame($appid) {
+
+			$url = $this->pre_url . "ISteamUserStats/GetSchemaForGame/v2/?key={$this->api_key}&appid={$appid}";
+
+			$handler = $this->get_content($url);
+
+			return $handler;
 		}
 
 	}
