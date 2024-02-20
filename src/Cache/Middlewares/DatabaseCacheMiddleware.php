@@ -60,24 +60,30 @@ class DatabaseCacheMiddleware extends AbstractCacheMiddleware implements ICacheM
 	}
 
 	public function setup(): void {
-		$connection = $this->conn();
+		$this->conn();
+		$this->deleteExpiredCachedData();
 		$this->createTableIfNotExists();
 	}
 
+	private function deleteExpiredCachedData(): void {
+		$expiredCachedDataQuery = 'DELETE FROM ' . self::TABLE_NAME . ' WHERE expire_at < NOW()';
+
+		$this->conn()->query($expiredCachedDataQuery);
+	}
+
 	private function createTableIfNotExists(): void {
-		$connection = $this->conn();
-		
 		$createTableQuery = 'CREATE TABLE IF NOT EXISTS ' . self::TABLE_NAME . '
 			(
 				id int(11) AUTO_INCREMENT PRIMARY KEY,
 				cache_key varchar(255) NOT NULL,
 				cache_data mediumtext NOT NULL,
+				expire_at datetime NOT NULL,
 				created_at timestamp DEFAULT CURRENT_TIMESTAMP,
 				updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 			)
 		;';
 
-		$this->conn->query($createTableQuery);
+		$this->conn()->query($createTableQuery);
 	}
 
 	protected function validate(): bool {
@@ -101,11 +107,14 @@ class DatabaseCacheMiddleware extends AbstractCacheMiddleware implements ICacheM
 		return $resultData[0]['cache_data'] ?? false;
 	}
 
-	public function store(string $key, $data): void {
-		$insertCachedDataQuery = 'INSERT INTO ' . self::TABLE_NAME . ' (cache_key, cache_data) VALUES (?, ?);';
+	public function store(string $key, $data, int $expirationTime): void {
+		$insertCachedDataQuery = 'INSERT INTO ' . self::TABLE_NAME . ' (cache_key, cache_data, expire_at) VALUES (?, ?, ?);';
+
+		$expireAtTimestamp = time() + $expirationTime;
+		$expireAtDatetime = gmdate('Y-m-d H:i:s', $expireAtTimestamp);
 
 		$preparedStatement = $this->conn()->prepare($insertCachedDataQuery);
-		$preparedStatement->bind_param('ss', $key, $data);
+		$preparedStatement->bind_param('sss', $key, $data, $expireAtDatetime);
 		$preparedStatement->execute();
 	}
 

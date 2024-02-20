@@ -12,7 +12,8 @@ class RequestClient {
 
 	public function __construct() {
 		$this->httpClient = new Client([
-			RequestOptions::HTTP_ERRORS => false
+			RequestOptions::HTTP_ERRORS => false,
+			RequestOptions::VERIFY => false
 		]);
 	}
 

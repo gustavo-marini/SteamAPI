@@ -3,11 +3,14 @@
 namespace Secco2112\SteamAPI\Service;
 
 use Secco2112\SteamAPI\API;
+use Secco2112\SteamAPI\Cache\CacheExpiration;
 use Secco2112\SteamAPI\Client\Request\RequestClient;
 
 abstract class AbstractService {
 
 	const INTERFACE = '';
+
+	const DEFAULT_CACHE_EXPIRATION_TIME = CacheExpiration::THIRTY_MINUTES;
 
 
 	/** @var API */
@@ -18,6 +21,9 @@ abstract class AbstractService {
 
 	/** @var string */
 	private $endpoint;
+
+	/** @var int */
+	private $cacheExpirationTime = self::DEFAULT_CACHE_EXPIRATION_TIME;
 
 	/** @var string */
 	private $method;
@@ -43,6 +49,12 @@ abstract class AbstractService {
 
 	public function setEndpoint(string $endpoint): self {
 		$this->endpoint = $endpoint;
+
+		return $this;
+	}
+
+	public function setCacheExpirationTime(int $cacheExpirationTime): static {
+		$this->cacheExpirationTime = $cacheExpirationTime;
 
 		return $this;
 	}
@@ -159,7 +171,7 @@ abstract class AbstractService {
 			$cacheMiddleware->setup();
 			$cacheKey = $cacheMiddleware->generateCacheKey($requestUrl, $additionalParams);
 
-			$cacheMiddleware->store($cacheKey, serialize($data));
+			$cacheMiddleware->store($cacheKey, serialize($data), $this->cacheExpirationTime);
 		}
 	}
 

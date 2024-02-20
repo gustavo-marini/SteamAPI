@@ -10,6 +10,6 @@ interface ICacheMiddleware {
 
 	public function getData(string $key);
 
-	public function store(string $key, $data): void;
+	public function store(string $key, $data, int $expirationTime): void;
 
 }
